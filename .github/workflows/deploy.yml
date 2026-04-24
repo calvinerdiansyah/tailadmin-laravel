@@ -1,0 +1,33 @@
+name: Deploy Tailadmin Laravel
+
+on:
+  push:
+    branches: [main]
+
+env:
+  IMAGE_NAME: ${{ secrets.DOCKER_USER }}/tailadmin-laravel:beta
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cleanup
+        run: docker system prune -f || true
+
+      - name: Login DockerHub
+        run: echo "${{ secrets.DOCKER_PASS }}" | docker login -u "${{ secrets.DOCKER_USER }}" --password-stdin
+
+      - name: Build Image
+        run: docker build -t $IMAGE_NAME .
+
+      - name: Push Image
+        run: docker push $IMAGE_NAME
+
+      - name: Remove Old Container
+        run: docker rm -f tailadmin-laravel || true
+
+      - name: Run Container
+        run: docker run -d --name tailadmin-laravel -p 8090:8090 $IMAGE_NAME
